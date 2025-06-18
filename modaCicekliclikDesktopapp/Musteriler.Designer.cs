@@ -38,12 +38,12 @@
             this.recordsPerPagecbx = new System.Windows.Forms.ComboBox();
             this.deleteBtn = new System.Windows.Forms.Button();
             this.addnewBtn = new System.Windows.Forms.Button();
-            this.printBtn = new Guna.UI2.WinForms.Guna2Button();
             this.araTextbox = new Guna.UI2.WinForms.Guna2TextBox();
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
             this.closeBtn = new Guna.UI2.WinForms.Guna2ControlBox();
             this.panel2 = new System.Windows.Forms.Panel();
+            this.updateBtn = new System.Windows.Forms.Button();
             this.LastBtn = new System.Windows.Forms.Button();
             this.NextBtn = new System.Windows.Forms.Button();
             this.PreviousBtn = new System.Windows.Forms.Button();
@@ -54,7 +54,6 @@
             this.MusteriDgv = new Guna.UI2.WinForms.Guna2DataGridView();
             this.printDocument1 = new System.Drawing.Printing.PrintDocument();
             this.printPreviewDialog1 = new System.Windows.Forms.PrintPreviewDialog();
-            this.updateBtn = new System.Windows.Forms.Button();
             this.panel2.SuspendLayout();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
@@ -119,21 +118,6 @@
             this.addnewBtn.Text = "Ekle";
             this.addnewBtn.UseVisualStyleBackColor = false;
             this.addnewBtn.Click += new System.EventHandler(this.addnewBtn_Click);
-            // 
-            // printBtn
-            // 
-            this.printBtn.BorderRadius = 1;
-            this.printBtn.DisabledState.BorderColor = System.Drawing.Color.DarkGray;
-            this.printBtn.DisabledState.CustomBorderColor = System.Drawing.Color.DarkGray;
-            this.printBtn.DisabledState.FillColor = System.Drawing.Color.FromArgb(((int)(((byte)(169)))), ((int)(((byte)(169)))), ((int)(((byte)(169)))));
-            this.printBtn.DisabledState.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(141)))), ((int)(((byte)(141)))), ((int)(((byte)(141)))));
-            this.printBtn.FillColor = System.Drawing.Color.Transparent;
-            this.printBtn.Font = new System.Drawing.Font("Segoe UI", 9F);
-            this.printBtn.ForeColor = System.Drawing.Color.White;
-            this.printBtn.Location = new System.Drawing.Point(563, 4);
-            this.printBtn.Name = "printBtn";
-            this.printBtn.Size = new System.Drawing.Size(41, 41);
-            this.printBtn.TabIndex = 6;
             // 
             // araTextbox
             // 
@@ -208,6 +192,19 @@
             this.panel2.Name = "panel2";
             this.panel2.Size = new System.Drawing.Size(906, 40);
             this.panel2.TabIndex = 4;
+            this.panel2.Paint += new System.Windows.Forms.PaintEventHandler(this.panel2_Paint);
+            // 
+            // updateBtn
+            // 
+            this.updateBtn.BackColor = System.Drawing.Color.White;
+            this.updateBtn.Dock = System.Windows.Forms.DockStyle.Right;
+            this.updateBtn.Location = new System.Drawing.Point(624, 0);
+            this.updateBtn.Name = "updateBtn";
+            this.updateBtn.Size = new System.Drawing.Size(97, 40);
+            this.updateBtn.TabIndex = 10;
+            this.updateBtn.Text = "Güncelle";
+            this.updateBtn.UseVisualStyleBackColor = false;
+            this.updateBtn.Click += new System.EventHandler(this.updateBtn_Click);
             // 
             // LastBtn
             // 
@@ -258,7 +255,6 @@
             this.panel1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(203)))), ((int)(((byte)(247)))), ((int)(((byte)(216)))));
             this.panel1.Controls.Add(this.PrintMusteriBtn);
             this.panel1.Controls.Add(this.pictureBox1);
-            this.panel1.Controls.Add(this.printBtn);
             this.panel1.Controls.Add(this.araTextbox);
             this.panel1.Controls.Add(this.label2);
             this.panel1.Controls.Add(this.label1);
@@ -362,18 +358,6 @@
             this.printPreviewDialog1.Name = "printPreviewDialog1";
             this.printPreviewDialog1.Visible = false;
             // 
-            // updateBtn
-            // 
-            this.updateBtn.BackColor = System.Drawing.Color.White;
-            this.updateBtn.Dock = System.Windows.Forms.DockStyle.Right;
-            this.updateBtn.Location = new System.Drawing.Point(624, 0);
-            this.updateBtn.Name = "updateBtn";
-            this.updateBtn.Size = new System.Drawing.Size(97, 40);
-            this.updateBtn.TabIndex = 10;
-            this.updateBtn.Text = "Güncelle";
-            this.updateBtn.UseVisualStyleBackColor = false;
-            this.updateBtn.Click += new System.EventHandler(this.updateBtn_Click);
-            // 
             // Musteriler
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -403,7 +387,6 @@
         private System.Windows.Forms.ComboBox recordsPerPagecbx;
         private System.Windows.Forms.Button deleteBtn;
         private System.Windows.Forms.Button addnewBtn;
-        private Guna.UI2.WinForms.Guna2Button printBtn;
         private Guna.UI2.WinForms.Guna2TextBox araTextbox;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label1;

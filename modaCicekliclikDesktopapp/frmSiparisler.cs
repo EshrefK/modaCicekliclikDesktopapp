@@ -10,9 +10,9 @@ using System.Windows.Forms;
 
 namespace modaCicekliclikDesktopapp
 {
-    public partial class Urunler : Form
+    public partial class frmSiparisler : Form
     {
-        public Urunler()
+        public frmSiparisler()
         {
             InitializeComponent();
         }

@@ -7,9 +7,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Org.BouncyCastle.Asn1.BC;
 using MySql.Data.MySqlClient;
+using System.Drawing.Text;
 using System.Drawing.Printing;
-using System.Runtime.InteropServices;
 
 namespace modaCicekliclikDesktopapp
 {
@@ -25,16 +26,18 @@ namespace modaCicekliclikDesktopapp
         private int totalRecords = 0;
         private int totalPages = 0;
         #endregion
-
         public Satislar()
         {
             InitializeComponent();
+
             LoadSatislar();
+
             LoadRecordsPerPageOptions();
         }
 
         private void LoadRecordsPerPageOptions()
         {
+            // Add options for records per page
             recordsPerPagecbx.Items.Add("all");
             recordsPerPagecbx.Items.Add("10");
             recordsPerPagecbx.Items.Add("20");
@@ -67,30 +70,27 @@ namespace modaCicekliclikDesktopapp
 
                     // Get total record count for pagination
                     using (MySqlCommand countCommand = new MySqlCommand(
-                        "SELECT COUNT(*) FROM satislar s " +
-                        "INNER JOIN musteriler m ON s.musteri_id = m.musteri_id " +
-                        "INNER JOIN urunler u ON s.urun_id = u.urun_id " +
-                        "WHERE m.ad LIKE @search OR " +
-                        "m.soyad LIKE @search OR " +
-                        "u.urun_adi LIKE @search", connection))
+                        "SELECT COUNT(*) FROM satislar WHERE " +
+                        "musteri_adi LIKE @search OR " +
+                        "urun_adi LIKE @search OR " +
+                        "miktar LIKE @search OR " +
+                        "toplam_fiyat LIKE @search", connection))
                     {
                         countCommand.Parameters.AddWithValue("@search", "%" + araTextbox.Text + "%");
                         totalRecords = Convert.ToInt32(countCommand.ExecuteScalar());
                         totalPages = (int)Math.Ceiling((double)totalRecords / recordsPerPage);
                     }
 
-                    // Get paginated data
-                    using (MySqlCommand dataCommand = new MySqlCommand(
-                        "SELECT s.satis_id, s.satis_tarihi, CONCAT(m.ad, ' ', m.soyad) as musteri_adi, " +
-                        "u.urun_adi, s.miktar, s.satis_fiyat " +
-                        "FROM satislar s " +
-                        "INNER JOIN musteriler m ON s.musteri_id = m.musteri_id " +
-                        "INNER JOIN urunler u ON s.urun_id = u.urun_id " +
-                        "WHERE m.ad LIKE @search OR " +
-                        "m.soyad LIKE @search OR " +
-                        "u.urun_adi LIKE @search " +
-                        "ORDER BY s.satis_tarihi DESC " +
-                        "LIMIT @Offset, @RecordsPerPage", connection))
+                    // Get paginated data - select all columns that exist in the table with proper aliases
+                    string sqlQuery = "SELECT satis_id AS 'Satış No', satis_tarihi AS 'Tarih', musteri_adi AS 'Müşteri Adı', urun_adi AS 'Ürün Adı', miktar AS 'Miktar', toplam_fiyat AS 'Toplam Fiyat' FROM satislar WHERE " +
+                        "musteri_adi LIKE @search OR " +
+                        "urun_adi LIKE @search OR " +
+                        "miktar LIKE @search OR " +
+                        "toplam_fiyat LIKE @search " +
+                        "ORDER BY satis_tarihi DESC " +
+                        "LIMIT @Offset, @RecordsPerPage";
+
+                    using (MySqlCommand dataCommand = new MySqlCommand(sqlQuery, connection))
                     {
                         dataCommand.Parameters.AddWithValue("@search", "%" + araTextbox.Text + "%");
                         dataCommand.Parameters.AddWithValue("@Offset", (currentPage - 1) * recordsPerPage);
@@ -100,7 +100,7 @@ namespace modaCicekliclikDesktopapp
                         DataTable dataTable = new DataTable();
                         adapter.Fill(dataTable);
 
-                        SatisDgv.DataSource = dataTable;
+                        SatislarDgv.DataSource = dataTable;
                     }
 
                     UpdateNavigationLabels();
@@ -113,163 +113,94 @@ namespace modaCicekliclikDesktopapp
             }
         }
 
-        private void btnSatisEkle_Click(object sender, EventArgs e)
+        private void addnewBtn_Click(object sender, EventArgs e)
         {
-            frmSatis frmSatis = new frmSatis(this);
-            frmSatis.ShowDialog();
-        }
+            frmSatislar frmSatislar = new frmSatislar(this);
 
-        private void btnSatisGuncelle_Click(object sender, EventArgs e)
-        {
-            if (dataGridView1.SelectedRows.Count > 0)
-            {
-                DataGridViewRow row = dataGridView1.SelectedRows[0];
-                frmSatis frmSatis = new frmSatis(this);
-                
-                // Set the form title
-                frmSatis.Text = "Satış Güncelle";
-                frmSatis.lblTitle.Text = "Satış Güncelle";
+            // Clear any existing data
+            frmSatislar.ClearFields();
+            // Enable add button and disable update button
+            frmSatislar.btnsatisEkle.Enabled = true;
+            frmSatislar.btnsatisGuncelle.Enabled = false;
 
-                // Hide the add button and show the update button
-                frmSatis.btnSatisEkle.Visible = false;
-                frmSatis.btnSatisGuncelle.Visible = true;
-
-                // Set the ID for update
-                frmSatis.IDlabel.Text = row.Cells["satis_id"].Value.ToString();
-
-                // Load the data
-                frmSatis.musteriComboBox.Text = row.Cells["musteri_adi"].Value.ToString();
-                frmSatis.urunComboBox.Text = row.Cells["urun_adi"].Value.ToString();
-                frmSatis.satisTarihiDateTimePicker.Value = Convert.ToDateTime(row.Cells["satis_tarihi"].Value);
-                frmSatis.miktarTextbox.Text = row.Cells["miktar"].Value.ToString();
-                frmSatis.toplamFiyatTextbox.Text = row.Cells["satis_fiyat"].Value.ToString();
-
-                frmSatis.ShowDialog();
-            }
-            else
-            {
-                MessageBox.Show("Lütfen güncellenecek satışı seçin.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
-        }
-
-        private void btnSatisSil_Click(object sender, EventArgs e)
-        {
-            if (dataGridView1.SelectedRows.Count > 0)
-            {
-                if (MessageBox.Show("Seçili satışı silmek istediğinize emin misiniz?", "Onay", 
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-                {
-                    try
-                    {
-                        using (MySqlConnection connection = dbconnect.GetConnection())
-                        {
-                            connection.Open();
-                            using (MySqlCommand command = new MySqlCommand(
-                                "DELETE FROM satislar WHERE satis_id = @id", connection))
-                            {
-                                command.Parameters.AddWithValue("@id", 
-                                    dataGridView1.SelectedRows[0].Cells["satis_id"].Value);
-                                
-                                int result = command.ExecuteNonQuery();
-                                if (result > 0)
-                                {
-                                    MessageBox.Show("Satış başarıyla silindi.", "Bilgi", 
-                                        MessageBoxButtons.OK, MessageBoxIcon.Information);
-                                    LoadSatislar();
-                                }
-                                else
-                                {
-                                    MessageBox.Show("Satış silinemedi.", "Hata", 
-                                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
-            }
-            else
-            {
-                MessageBox.Show("Lütfen silinecek satışı seçin.", "Uyarı", 
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            }
+            frmSatislar.ShowDialog();
         }
 
         private void araTextbox_TextChanged(object sender, EventArgs e)
         {
-            try
+            currentPage = 1; // Reset to first page on search
+            LoadSatislar();
+        }
+
+        private void SatislarDgv_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.RowIndex < SatislarDgv.Rows.Count)
             {
-                using (MySqlConnection connection = dbconnect.GetConnection())
-                {
-                    connection.Open();
-                    using (MySqlCommand command = new MySqlCommand(
-                        "SELECT s.satis_id, CONCAT(m.ad, ' ', m.soyad) as musteri_adi, u.urun_adi, " +
-                        "s.satis_tarihi, s.miktar, s.toplam_fiyat " +
-                        "FROM satislar s " +
-                        "INNER JOIN musteriler m ON s.musteri_id = m.musteri_id " +
-                        "INNER JOIN urunler u ON s.urun_id = u.urun_id " +
-                        "WHERE CONCAT(m.ad, ' ', m.soyad) LIKE @search " +
-                        "OR u.urun_adi LIKE @search " +
-                        "ORDER BY s.satis_tarihi DESC", connection))
-                    {
-                        command.Parameters.AddWithValue("@search", "%" + araTextbox.Text + "%");
-                        MySqlDataAdapter adapter = new MySqlDataAdapter(command);
-                        DataTable dataTable = new DataTable();
-                        adapter.Fill(dataTable);
-                        dataGridView1.DataSource = dataTable;
+                DataGridViewRow row = SatislarDgv.Rows[e.RowIndex];
+                frmSatislar frmSatislar = new frmSatislar(this);
+                frmSatislar.IDlabel.Text = SatislarDgv.Rows[e.RowIndex].Cells[0].Value.ToString(); // Satış No
+                frmSatislar.musteriadTextbox.Text = SatislarDgv.Rows[e.RowIndex].Cells[2].Value.ToString(); // Müşteri Adı
+                frmSatislar.urunAdiTextbox.Text = SatislarDgv.Rows[e.RowIndex].Cells[3].Value.ToString(); // Ürün Adı
+                frmSatislar.satismiktarTextbox.Text = SatislarDgv.Rows[e.RowIndex].Cells[4].Value.ToString(); // Miktar
+                frmSatislar.toplamtutarTextbox.Text = SatislarDgv.Rows[e.RowIndex].Cells[5].Value.ToString(); // Toplam Fiyat
 
-                        // Hide the satis_id column
-                        dataGridView1.Columns["satis_id"].Visible = false;
-
-                        // Set column headers
-                        dataGridView1.Columns["musteri_adi"].HeaderText = "Müşteri";
-                        dataGridView1.Columns["urun_adi"].HeaderText = "Ürün";
-                        dataGridView1.Columns["satis_tarihi"].HeaderText = "Satış Tarihi";
-                        dataGridView1.Columns["miktar"].HeaderText = "Miktar";
-                        dataGridView1.Columns["toplam_fiyat"].HeaderText = "Toplam Fiyat";
-
-                        // Format the date column
-                        dataGridView1.Columns["satis_tarihi"].DefaultCellStyle.Format = "dd.MM.yyyy";
-
-                        // Format the price column
-                        dataGridView1.Columns["toplam_fiyat"].DefaultCellStyle.Format = "N2";
-                        dataGridView1.Columns["toplam_fiyat"].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                frmSatislar.btnsatisEkle.Enabled = false; // Disable add button
+                frmSatislar.btnsatisGuncelle.Enabled = true; // Enable update button
+                frmSatislar.ShowDialog();
             }
         }
 
-        private void pnlHeader_MouseDown(object sender, MouseEventArgs e)
+        private void recordsPerPagecbx_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (e.Button == MouseButtons.Left)
+            String selectedValue = recordsPerPagecbx.SelectedItem.ToString();
+            if (selectedValue == "all")
             {
-                ReleaseCapture();
-                SendMessage(Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+                recordsPerPage = totalRecords; // Show all records
+            }
+            else
+            {
+                recordsPerPage = Convert.ToInt32(selectedValue);
+            }
+            currentPage = 1; // Reset to first page on change
+            LoadSatislar();
+        }
+        private void FirstBtn_Click(object sender, EventArgs e)
+        {
+            currentPage = 1;
+            LoadSatislar();
+        }
+
+        private void PreviousBtn_Click(object sender, EventArgs e)
+        {
+            if (currentPage > 1)
+            {
+                currentPage--;
+                LoadSatislar();
             }
         }
 
-        [DllImport("user32.dll")]
-        public static extern bool ReleaseCapture();
+        private void NextBtn_Click(object sender, EventArgs e)
+        {
+            if (currentPage < totalPages)
+            {
+                currentPage++;
+                LoadSatislar();
+            }
+        }
 
-        [DllImport("user32.dll")]
-        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+        private void LastBtn_Click(object sender, EventArgs e)
+        {
+            currentPage = totalPages;
+            LoadSatislar();
+        }
 
-        private const int WM_NCLBUTTONDOWN = 0xA1;
-        private const int HTCAPTION = 0x2;
-
-        private void PrintSatisBtn_Click(object sender, EventArgs e)
+        private void PrintSatislarBtn_Click(object sender, EventArgs e)
         {
             try
             {
+                currentPrintRow = 0; // Reset to start from the beginning
                 PrintPreviewDialog printPreviewDialog = new PrintPreviewDialog();
-                printPreviewDialog.Document = printDocument1;
+                printPreviewDialog.Document = satislarprintDocument1;
                 printPreviewDialog.ShowDialog();
             }
             catch (Exception ex)
@@ -277,10 +208,9 @@ namespace modaCicekliclikDesktopapp
                 MessageBox.Show(ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
         private int currentPrintRow = 0; // Track the current row being printed
-        
-        private void printDocument1_PrintPage(object sender, PrintPageEventArgs e)
+
+        private void satislarprintDocument1_PrintPage(object sender, PrintPageEventArgs e)
         {
             // A4 size in hundredths of millimeters (827 x 1169)
             e.PageSettings.PaperSize = new PaperSize("A4", 827, 1169);
@@ -301,18 +231,18 @@ namespace modaCicekliclikDesktopapp
             e.Graphics.DrawImage(image, new Point(leftMargin, topMargin));
 
             // Title
-            string title = "Satış Listesi";
+            string title = "Satışlar Listesi";
             Font titleFont = new Font("Arial", 14, FontStyle.Bold);
             SizeF titleSize = e.Graphics.MeasureString(title, titleFont);
-            e.Graphics.DrawString(title, titleFont, Brushes.Black, 
+            e.Graphics.DrawString(title, titleFont, Brushes.Black,
                 new PointF(leftMargin + (usableWidth - titleSize.Width) / 2, topMargin + 100));
 
             // Column headers
             Font headerFont = new Font("Arial", 10, FontStyle.Bold);
             int yPosition = topMargin + 150;
-            int[] columnWidths = { 50, 100, 150, 150, 80, 100 }; // Adjusted for actual columns
-            string[] headers = { "No", "Tarih", "Müşteri", "Ürün", "Miktar", "Satış Fiyatı" };
-            
+            int[] columnWidths = { 50, 80, 100, 100, 60, 80 }; // Adjust these values as needed
+            string[] headers = { "No", "Tarih", "Müşteri Adı", "Ürün Adı", "Miktar", "Tutar" };
+
             // Draw headers
             int xPosition = leftMargin;
             for (int i = 0; i < headers.Length; i++)
@@ -329,7 +259,7 @@ namespace modaCicekliclikDesktopapp
             Font dataFont = new Font("Arial", 9);
             yPosition += 10;
 
-            for (int i = currentPrintRow; i < dataGridView1.Rows.Count; i++)
+            for (int i = currentPrintRow; i < SatislarDgv.Rows.Count; i++)
             {
                 if (yPosition > usableHeight + topMargin)
                 {
@@ -338,7 +268,7 @@ namespace modaCicekliclikDesktopapp
                     return;
                 }
 
-                DataGridViewRow row = dataGridView1.Rows[i];
+                DataGridViewRow row = SatislarDgv.Rows[i];
                 xPosition = leftMargin;
 
                 // Draw each cell
@@ -347,7 +277,14 @@ namespace modaCicekliclikDesktopapp
                     if (row.Cells[j].Value != null)
                     {
                         string cellValue = row.Cells[j].Value.ToString();
-                        e.Graphics.DrawString(cellValue, dataFont, Brushes.Black, 
+                        
+                        // Format date if it's the date column
+                        if (j == 1 && DateTime.TryParse(cellValue, out DateTime dateValue))
+                        {
+                            cellValue = dateValue.ToString("dd/MM/yyyy");
+                        }
+                        
+                        e.Graphics.DrawString(cellValue, dataFont, Brushes.Black,
                             new RectangleF(xPosition, yPosition, columnWidths[j], 20));
                     }
                     xPosition += columnWidths[j];
@@ -357,12 +294,70 @@ namespace modaCicekliclikDesktopapp
             }
 
             // Draw footer
-            string footer = $"Sayfa: {currentPage + 1} | Tarih: {DateTime.Now.ToString("dd/MM/yyyy")}";
+            string footer = $"Sayfa: 1 | Tarih: {DateTime.Now.ToString("dd/MM/yyyy")}";
             Font footerFont = new Font("Arial", 8);
-            e.Graphics.DrawString(footer, footerFont, Brushes.Black, 
+            e.Graphics.DrawString(footer, footerFont, Brushes.Black,
                 new PointF(leftMargin, usableHeight + topMargin - 20));
 
             e.HasMorePages = false;
         }
+
+        private void deleteBtn_Click(object sender, EventArgs e)
+        {
+            string sql = "DELETE FROM satislar WHERE satis_id = @satis_id";
+            try
+            {
+                using (MySqlConnection connection = dbconnect.GetConnection())
+                {
+                    connection.Open();
+                    using (MySqlCommand command = new MySqlCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@satis_id", SatislarDgv.CurrentRow.Cells[0].Value);
+                        int result = command.ExecuteNonQuery();
+                        if (result > 0)
+                        {
+                            MessageBox.Show("Satış başarıyla silindi.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            LoadSatislar(); // Refresh the data grid
+                        }
+                        else
+                        {
+                            MessageBox.Show("Silme işlemi başarısız.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void updateBtn_Click(object sender, EventArgs e)
+        {
+            if (SatislarDgv.SelectedRows.Count > 0)
+            {
+                DataGridViewRow row = SatislarDgv.SelectedRows[0];
+                frmSatislar frmSatislar = new frmSatislar(this);
+
+                // Set the ID and other fields using column indices
+                frmSatislar.IDlabel.Text = row.Cells[0].Value.ToString(); // Satış No
+                frmSatislar.musteriadTextbox.Text = row.Cells[2].Value.ToString(); // Müşteri Adı
+                frmSatislar.urunAdiTextbox.Text = row.Cells[3].Value.ToString(); // Ürün Adı
+                frmSatislar.satismiktarTextbox.Text = row.Cells[4].Value.ToString(); // Miktar
+                frmSatislar.toplamtutarTextbox.Text = row.Cells[5].Value.ToString(); // Toplam Fiyat
+                
+                // Disable add button and enable update button
+                frmSatislar.btnsatisEkle.Enabled = false;
+                frmSatislar.btnsatisGuncelle.Enabled = true;
+
+                frmSatislar.ShowDialog();
+            }
+            else
+            {
+                MessageBox.Show("Lütfen güncellemek istediğiniz sırayı seçin.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+
     }
 }

@@ -137,7 +137,7 @@ namespace modaCicekliclikDesktopapp
             LoadMusteri();
         }
 
-        private System.Windows.Forms.Timer searchTimer;
+        
 
         private void musteriDgv_CellClick(object sender, DataGridViewCellEventArgs e)
         {
@@ -362,6 +362,11 @@ namespace modaCicekliclikDesktopapp
             {
                 MessageBox.Show("Lütfen güncellemek istediğiniz müşteriyi seçin.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
+        }
+
+        private void panel2_Paint(object sender, PaintEventArgs e)
+        {
+
         }
     }
 }

@@ -10,9 +10,10 @@ using System.Windows.Forms;
 using MySql.Data.MySqlClient;
 using System.Runtime.InteropServices;
 
+
 namespace modaCicekliclikDesktopapp
 {
-    public partial class frmMusteri : Form
+    public partial class frmSatislar : Form
     {
         #region Mysqlconnection
         DBconnect dbconnect = new DBconnect();
@@ -34,13 +35,10 @@ namespace modaCicekliclikDesktopapp
             {
                 var validationControls = new Dictionary<string, Control>
         {
-            { "lütfen adınızı giriniz", musteriadTextbox },
-            { "lütfen soyadınızı giriniz", musterisoyadTextbox },
-            { "lütfen telefon numaranızı giriniz", musteritelefonTextbox },
-            { "lütfen email", musteriemailTextbox },
-            { "lütfen il giriniz", musteriilTextbox },
-            { "lütfen ilçe giriniz", musteriilceTextbox },
-            { "lütfen adres giriniz", musteriadresTextbox },
+            { "Lütfen müşteri adını giriniz", musteriadTextbox },
+            { "Lütfen ürün adını giriniz", urunAdiTextbox },
+            { "Lütfen miktar giriniz", satismiktarTextbox },
+            { "Lütfen toplam tutarı giriniz", toplamtutarTextbox },
         };
 
                 foreach (var control in validationControls)
@@ -64,19 +62,16 @@ namespace modaCicekliclikDesktopapp
         public void ClearFields()
         {
             musteriadTextbox.Clear();
-            musterisoyadTextbox.Clear();
-            musteritelefonTextbox.Clear();
-            musteriemailTextbox.Clear();
-            musteriilTextbox.Clear();
-            musteriilceTextbox.Clear();
-            musteriadresTextbox.Clear();
+            urunAdiTextbox.Clear();
+            satismiktarTextbox.Clear();
+            toplamtutarTextbox.Clear();
+            
         }
-        Musteriler fMusteri;
-        public frmMusteri(Musteriler musterilerList)
+        Satislar fSatis;
+        public frmSatislar(Satislar satislarList)
         {
             InitializeComponent();
-            fMusteri = musterilerList;
-
+            fSatis = satislarList;
         }
 
         private void pnlHeader_MouseDown(object sender, MouseEventArgs e)
@@ -88,34 +83,35 @@ namespace modaCicekliclikDesktopapp
             }
         }
 
-        private void btnmusteriEkle_Click(object sender, EventArgs e)
+        private void btnsatisEkle_Click(object sender, EventArgs e)
         {
-            using(MySqlConnection cmd = dbconnect.GetConnection())
+            using (MySqlConnection cmd = dbconnect.GetConnection())
             {
                 try
                 {
                     if (ValidateInputSave())
                     {
                         cmd.Open();
-                        MySqlCommand command = new MySqlCommand("INSERT INTO musteriler (ad, soyad, telefon, email, il, ilce, adres) VALUES (@ad, @soyad, @telefon, @email, @il, @ilce, @adres)", cmd);
-                        command.Parameters.AddWithValue("@ad", musteriadTextbox.Text);
-                        command.Parameters.AddWithValue("@soyad", musterisoyadTextbox.Text);
-                        command.Parameters.AddWithValue("@telefon", musteritelefonTextbox.Text);
-                        command.Parameters.AddWithValue("@email", musteriemailTextbox.Text);
-                        command.Parameters.AddWithValue("@il", musteriilTextbox.Text);
-                        command.Parameters.AddWithValue("@ilce", musteriilceTextbox.Text);
-                        command.Parameters.AddWithValue("@adres", musteriadresTextbox.Text);
+                        MySqlCommand command = new MySqlCommand(
+                        "INSERT INTO satislar (satis_tarihi, musteri_adi, urun_adi, miktar, toplam_fiyat) VALUES (@satis_tarihi, @musteri_adi, @urun_adi, @miktar, @toplam_fiyat)", cmd);
+
+                        command.Parameters.AddWithValue("@satis_tarihi", DateTime.Now);
+                        command.Parameters.AddWithValue("@musteri_adi", musteriadTextbox.Text);
+                        command.Parameters.AddWithValue("@urun_adi", urunAdiTextbox.Text);
+                        command.Parameters.AddWithValue("@miktar", satismiktarTextbox.Text);
+                        command.Parameters.AddWithValue("@toplam_fiyat", toplamtutarTextbox.Text);
+
                         int result = command.ExecuteNonQuery();
                         if (result > 0)
                         {
-                            MessageBox.Show("Müşteri başarıyla eklendi.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            MessageBox.Show("Satış başarıyla eklendi.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             ClearFields();
-                            fMusteri.LoadMusteri();
+                            fSatis.LoadSatislar();
                             this.Close(); // Close the form after successful addition
                         }
                         else
                         {
-                            MessageBox.Show("Müşteri eklenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show("Satış eklenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
                 }
@@ -126,35 +122,32 @@ namespace modaCicekliclikDesktopapp
             }
         }
 
-        public void btnmusteriGuncelle_Click(object sender, EventArgs e)
+        public void btnsatisGuncelle_Click(object sender, EventArgs e)
         {
-            using(MySqlConnection cmd = dbconnect.GetConnection())
+            using (MySqlConnection cmd = dbconnect.GetConnection())
             {
                 try
                 {
                     if (ValidateInputSave())
                     {
                         cmd.Open();
-                        MySqlCommand command = new MySqlCommand("UPDATE musteriler SET ad = @ad, soyad = @soyad, telefon = @telefon, email = @email, il = @il, ilce = @ilce, adres = @adres WHERE musteri_id = @id", cmd);
-                        command.Parameters.AddWithValue("@ad", musteriadTextbox.Text);
-                        command.Parameters.AddWithValue("@soyad", musterisoyadTextbox.Text);
-                        command.Parameters.AddWithValue("@telefon", musteritelefonTextbox.Text);
-                        command.Parameters.AddWithValue("@email", musteriemailTextbox.Text);
-                        command.Parameters.AddWithValue("@il", musteriilTextbox.Text);
-                        command.Parameters.AddWithValue("@ilce", musteriilceTextbox.Text);
-                        command.Parameters.AddWithValue("@adres", musteriadresTextbox.Text);
+                        MySqlCommand command = new MySqlCommand("UPDATE satislar SET musteri_adi = @musteri_adi, urun_adi = @urun_adi, miktar = @miktar, toplam_fiyat = @toplam_fiyat WHERE satis_id = @id", cmd);
+                        command.Parameters.AddWithValue("@musteri_adi", musteriadTextbox.Text);
+                        command.Parameters.AddWithValue("@urun_adi", urunAdiTextbox.Text);
+                        command.Parameters.AddWithValue("@miktar", satismiktarTextbox.Text);
+                        command.Parameters.AddWithValue("@toplam_fiyat", toplamtutarTextbox.Text);
                         command.Parameters.AddWithValue("@id", IDlabel.Text);
                         int result = command.ExecuteNonQuery();
                         if (result > 0)
                         {
-                            MessageBox.Show("Müşteri başarıyla güncellendi.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            MessageBox.Show("Satış başarıyla güncellendi.", "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             ClearFields();
                             this.Close();
-                            fMusteri.LoadMusteri();
+                            fSatis.LoadSatislar();
                         }
                         else
                         {
-                            MessageBox.Show("Müşteri güncellenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show("Satış güncellenemedi.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
                 }
